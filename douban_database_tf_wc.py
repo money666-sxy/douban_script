@@ -4,73 +4,12 @@ import multiprocessing
 from itertools import chain
 import jieba.posseg as pseg
 import jieba
-import psycopg2
-import traceback
 import wordcloud
 import time
 import base64
 import json
+from pg_handle import PgHandler
 jieba.posseg.POSTokenizer(tokenizer=jieba.Tokenizer())
-
-
-class PgHandler(object):
-    def __init__(self, db="postgres", user="postgres", password=None, host="127.0.0.1", port="5432"):
-        '''
-        Args:
-            db: Database
-            user: Username
-            password: Password
-            host: Server
-            port: Port
-        '''
-        self.db = db
-        self.user = user
-        self.password = password
-        self.host = host
-        self.port = port
-        self.config = f'dbname = {self.db} \
-                        user = {self.user} \
-                        password = {self.password} \
-                        host = {self.host} \
-                        port = {self.port}'
-
-    def query(self, sql):
-        '''
-        Args:
-            sql: sql you want to query
-        '''
-        try:
-            conn = psycopg2.connect(self.config)
-            cur = conn.cursor()
-            cur.execute(sql)
-            res = cur.fetchall()
-            cur.close()
-            conn.close()
-            if not res:
-                res = []
-            return res
-        except psycopg2.Error as e:
-            print(str(traceback.format_exc()))
-            return
-
-    def execute(self, sql):
-        '''
-        Args:
-            sql: sql you want to execute
-        '''
-        try:
-            conn = psycopg2.connect(self.config)
-            cur = conn.cursor()
-            cur.execute(sql)
-            res = None
-            if "returning" in sql:
-                res = cur.fetchone()
-            conn.commit()
-            cur.close()
-            conn.close()
-            return res
-        except psycopg2.Error as e:
-            print(str(traceback.format_exc()))
 
 
 def sidList():
@@ -206,22 +145,6 @@ def wc_json():
     for sid in sid_list:
         try:
             crawal_tf_wc(sid)
-            # tfidf_list = tfidf(sid)
-            # tfidf_list_json = json.dumps(
-            #     tfidf_list, ensure_ascii=False)  # list转化成json_list
-            # # print(tfidf_list_json)
-            # sql_insert_tf = '''UPDATE public."bookInfo_bookinfo" SET
-            #             tfidf = '{0}'::jsonb
-            #             WHERE sid = {1}; '''.format(tfidf_list_json, sid)
-            # print(sql_insert_tf)
-            # pg.execute(sql_insert_tf)
-            # image_base64 = word_cloud(tfidf_list)
-            # sql_insert_wc = '''UPDATE public."bookInfo_bookinfo" SET
-            #             word_cloud = '{0}'
-            #             WHERE sid = {1}; '''.format(image_base64, sid)
-            # print(len(image_base64))
-            # pg.execute(sql_insert_wc)
-            # # print(len(image_base64))
         except OSError:
             print('出现异常,{0}'.format(sid))
             pass
@@ -253,5 +176,4 @@ if __name__ == "__main__":
     # sid = 34617196  # 看见 20427187
     # sid = 1007305
     wc_json()
-
-    print(time.time()-start)
+    print('词云总用时:', time.time()-start)
