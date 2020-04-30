@@ -4,74 +4,12 @@ import psycopg2
 import traceback
 import jieba
 import json
+from pg_handle import PgHandler
 jieba.posseg.POSTokenizer(tokenizer=jieba.Tokenizer())
 
 
-class PgHandler(object):
-    '''
-    pgsql
-    '''
-
-    def __init__(self, db="postgres", user="postgres", password=None, host="127.0.0.1", port="5432"):
-        '''
-        Args:
-            db: Database
-            user: Username
-            password: Password
-            host: Server
-            port: Port
-        '''
-        self.db = db
-        self.user = user
-        self.password = password
-        self.host = host
-        self.port = port
-        self.config = f'dbname = {self.db} \
-                        user = {self.user} \
-                        password = {self.password} \
-                        host = {self.host} \
-                        port = {self.port}'
-
-    def query(self, sql):
-        '''
-        Args:
-            sql: sql you want to query
-        '''
-        try:
-            conn = psycopg2.connect(self.config)
-            cur = conn.cursor()
-            cur.execute(sql)
-            res = cur.fetchall()
-            cur.close()
-            conn.close()
-            if not res:
-                res = []
-            return res
-        except psycopg2.Error as e:
-            print(str(traceback.format_exc()))
-            return
-
-    def execute(self, sql):
-        '''
-        Args:
-            sql: sql you want to execute
-        '''
-        try:
-            conn = psycopg2.connect(self.config)
-            cur = conn.cursor()
-            cur.execute(sql)
-            res = None
-            if "returning" in sql:
-                res = cur.fetchone()
-            conn.commit()
-            cur.close()
-            conn.close()
-            return res
-        except psycopg2.Error as e:
-            print(str(traceback.format_exc()))
-
-
 def sidList():
+    '''取出sid列表'''
     sid_list = []
     pg = PgHandler("postgres", "postgres", "6666")
     sid_seq = pg.query('SELECT sid  FROM public."bookInfo_bookinfo";')
@@ -152,23 +90,21 @@ def pesg_word(sid):
     # 从数据库取出评论处理成词性列表
     pos_dict = {}
     tf_pos_dict = {}
-    pos_list = []
     pg = PgHandler("postgres", "postgres", "6666")
     datas = pg.query(
         'SELECT comment FROM public."bookInfo_bookcomment" WHERE (SID = {0});'.format(sid))
-    for i in datas:
+    for i in datas:  # 遍历词性评论并用jieba.pesg处理成词性字典 （词1:n；词2:v）
         pos_dict.update(dict(pseg.lcut(str(i).strip('(').strip(')'))))
-    for j in pos_dict.values():
+    for j in pos_dict.values():  # 计算相同词性出现的频数，存入字典
         if j in tf_pos_dict:
             tf_pos_dict[j] += 1
         else:
             tf_pos_dict[j] = 1
     tf_pos_dict = dict(
-        sorted(tf_pos_dict.items(), key=lambda item: item[1], reverse=True))
+        sorted(tf_pos_dict.items(), key=lambda item: item[1], reverse=True))  # 按照频数为词性字典排序
     # print('词性字典：', tf_pos_dict)
     print('一共有{0}个词汇'.format(sum(tf_pos_dict.values())))
-    tf_pos_dict = pos_ch(tf_pos_dict)
-
+    tf_pos_dict = pos_ch(tf_pos_dict)  # 转化为中文格式的词性
     return tf_pos_dict
     # return pos_list  # 处理成前端所需格式
 
@@ -179,7 +115,7 @@ def pos_list(tf_pos_dict):
     # tf_pos_dict = pesg_word(sid)
     for i, j in tf_pos_dict.items():
         pos_list.append({"value": j, "name": i})
-    # print(pos_list)
+    # 此方法专门用于字典（单引号）转换为json格式（双引号）
     pos_json = json.dumps(pos_list, ensure_ascii=False)
     # print(pos_json)
     # return pos_list
@@ -195,30 +131,17 @@ def pos_name(tf_pos_dict):
 
 
 def main():
-    pg = PgHandler("postgres", "postgres", "6666")
+    # 取出sid列表，计算出词性名列表、词性频数字典转化为json格式存入数据库
     sid_list = sidList()
     for sid in sid_list:
         crawal_pesg(sid)
-        # pos_dict = pesg_word(sid)
-        # pesg_list_json = pos_list(pos_dict)
-        # pesg_name_json = pos_name(pos_dict)
-        # sql_insert_list = '''UPDATE public."bookInfo_bookinfo" SET
-        #             pesg_list = '{0}'::jsonb
-        #             WHERE sid = {1}; '''.format(pesg_list_json, sid)
-        # print(sql_insert_list)
-        # pg.execute(sql_insert_list)
-        # sql_insert_name = '''UPDATE public."bookInfo_bookinfo" SET
-        #             pesg_name = '{0}'::jsonb
-        #             WHERE sid = {1}; '''.format(pesg_name_json, sid)
-        # pg.execute(sql_insert_name)
-        # print(sql_insert_name)
 
 
 def crawal_pesg(sid):
     pg = PgHandler("postgres", "postgres", "6666")
-    pos_dict = pesg_word(sid)
-    pesg_list_json = pos_list(pos_dict)
-    pesg_name_json = pos_name(pos_dict)
+    pos_dict = pesg_word(sid)  # 计算词性频数字典
+    pesg_list_json = pos_list(pos_dict)  # 转化成前端所需词性频数字典json格式
+    pesg_name_json = pos_name(pos_dict)  # 转化成前端所需词性名称列表json格式
     sql_insert_list = '''UPDATE public."bookInfo_bookinfo" SET
                     pesg_list = '{0}'::jsonb
                     WHERE sid = {1}; '''.format(pesg_list_json, sid)
@@ -235,18 +158,4 @@ if __name__ == "__main__":
     # sid = 1007305
     start = time.time()
     main()
-    # pos_dict = pesg_word(sid)
-    # pesg_list_json = pos_list(pos_dict)
-    # pos_name(pos_dict)
-    # sql_insert = '''UPDATE public."bookInfo_bookinfo" SET
-    #                 pesg_list = '{0}'::jsonb
-    #                 WHERE sid = 1007305; '''.format(pesg_list_json)
-
-    # pg.execute(sql_insert)
-    # 查看词性列表（json格式）
-    # sql_query = '''SELECT pesg_list
-    #                FROM public."bookInfo_bookinfo"
-    #                WHERE sid = 1007305;'''
-    # data = pg.query(sql_query)
-    # print(data, type(data))
     print(time.time()-start)
