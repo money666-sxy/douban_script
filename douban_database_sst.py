@@ -102,23 +102,44 @@ def sst():
     # sts_seq = []
     pg = pg_handle.PgHandler("postgres", "postgres", "6666")
     for sid in sid_list:
-        url = creat_sidurl(int(sid))
-        content = get_html(url)
-        tree = etree.HTML(content)
-        # score = score_(tree)
+        crawal_sst(sid)
+        # url = creat_sidurl(int(sid))
+        # content = get_html(url)
+        # tree = etree.HTML(content)
+        # # score = score_(tree)
+        # # star = star_str(tree)
+        # # tags = tags_(tree)
+        # # database must str,not dist or list
         # star = star_str(tree)
-        # tags = tags_(tree)
-        # database must str,not dist or list
-        star = star_str(tree)
-        score = score_(tree)
-        tags = tags_str(tree)
-        sql_insert = "UPDATE book_info set star = '{0}',tag='{1}',score={2} WHERE sid={3};".format(
-            star, tags, score, sid)
-        print(sql_insert)
-        # sql_insert = Sql_insert_sts('"{0}","{1}","{2}"'.format(
-        #     str(star), str(tags), str(score)))
-        pg.execute(sql_insert)
+        # score = score_(tree)
+        # tags = tags_str(tree)
+        # sql_insert = "UPDATE book_info set star = '{0}',tag='{1}',score={2} WHERE sid={3};".format(
+        #     star, tags, score, sid)
+        # print(sql_insert)
+        # # sql_insert = Sql_insert_sts('"{0}","{1}","{2}"'.format(
+        # #     str(star), str(tags), str(score)))
+        # pg.execute(sql_insert)
 
+
+def crawal_sst(sid):
+    pg = pg_handle.PgHandler("postgres", "postgres", "6666")
+    url = creat_sidurl(int(sid))
+    content = get_html(url)
+    tree = etree.HTML(content)
+    # score = score_(tree)
+    # star = star_str(tree)
+    # tags = tags_(tree)
+    # database must str,not dist or list
+    star = star_str(tree)
+    score = score_(tree)
+    tags = tags_str(tree)
+    sql_insert = '''UPDATE public."bookInfo_bookinfo" 
+                    set star = '{0}',tag='{1}',score={2} 
+                    WHERE sid={3};'''.format(star, tags, score, sid)
+    print(sql_insert)
+    # sql_insert = Sql_insert_sts('"{0}","{1}","{2}"'.format(
+    #     str(star), str(tags), str(score)))
+    pg.execute(sql_insert)
 
 # def test():
 #     sid_list = sidList()

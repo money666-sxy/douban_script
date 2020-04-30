@@ -205,26 +205,47 @@ def wc_json():
     # sid_list = [1084336, 1089243, 1054685]
     for sid in sid_list:
         try:
-            tfidf_list = tfidf(sid)
-            tfidf_list_json = json.dumps(
-                tfidf_list, ensure_ascii=False)  # list转化成json_list
-            # print(tfidf_list_json)
-            sql_insert_tf = '''UPDATE public."bookInfo_bookinfo" SET
-                        tfidf = '{0}'::jsonb
-                        WHERE sid = {1}; '''.format(tfidf_list_json, sid)
-            print(sql_insert_tf)
-            pg.execute(sql_insert_tf)
-            image_base64 = word_cloud(tfidf_list)
-            sql_insert_wc = '''UPDATE public."bookInfo_bookinfo" SET
-                        word_cloud = '{0}'
-                        WHERE sid = {1}; '''.format(image_base64, sid)
-            print(len(image_base64))
-            pg.execute(sql_insert_wc)
+            crawal_tf_wc(sid)
+            # tfidf_list = tfidf(sid)
+            # tfidf_list_json = json.dumps(
+            #     tfidf_list, ensure_ascii=False)  # list转化成json_list
+            # # print(tfidf_list_json)
+            # sql_insert_tf = '''UPDATE public."bookInfo_bookinfo" SET
+            #             tfidf = '{0}'::jsonb
+            #             WHERE sid = {1}; '''.format(tfidf_list_json, sid)
+            # print(sql_insert_tf)
+            # pg.execute(sql_insert_tf)
+            # image_base64 = word_cloud(tfidf_list)
+            # sql_insert_wc = '''UPDATE public."bookInfo_bookinfo" SET
+            #             word_cloud = '{0}'
+            #             WHERE sid = {1}; '''.format(image_base64, sid)
             # print(len(image_base64))
+            # pg.execute(sql_insert_wc)
+            # # print(len(image_base64))
         except OSError:
             print('出现异常,{0}'.format(sid))
             pass
         continue
+
+
+def crawal_tf_wc(sid):
+    pg = PgHandler("postgres", "postgres", "6666")
+    tfidf_list = tfidf(sid)
+    tfidf_list_json = json.dumps(
+        tfidf_list, ensure_ascii=False)  # list转化成json_list
+    # print(tfidf_list_json)
+    sql_insert_tf = '''UPDATE public."bookInfo_bookinfo" SET
+                        tfidf = '{0}'::jsonb
+                        WHERE sid = {1}; '''.format(tfidf_list_json, sid)
+    print(sql_insert_tf)
+    pg.execute(sql_insert_tf)
+    image_base64 = word_cloud(tfidf_list)
+    sql_insert_wc = '''UPDATE public."bookInfo_bookinfo" SET
+                        word_cloud = '{0}'
+                        WHERE sid = {1}; '''.format(image_base64, sid)
+    print('词云图片长度:{0}'.format(len(image_base64)))
+    pg.execute(sql_insert_wc)
+    # print(len(image_base64))
 
 
 if __name__ == "__main__":

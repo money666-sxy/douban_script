@@ -3,7 +3,6 @@ import urllib.request
 import urllib.parse
 from bs4 import BeautifulSoup
 import time
-import crawler_tools
 import pg_handle
 
 
@@ -43,8 +42,9 @@ def sql_create_table():
 
 def Sql_insert(sid, list):
     a = str(list).strip('[').strip(']')
-    sql_insert = 'INSERT INTO '+'book_comment' + \
-        '(SID,NUM,NAME,TIME,LIKE_NUM,COMMENT) VALUES ('+str(sid)+','+str(a)+');'
+    sql_insert = '''INSERT INTO public."bookInfo_bookcomment" 
+                     (SID, NUM, NAME, TIME, LIKE_NUM, COMMENT) 
+                     VALUES({0}, {1})'''.format(str(sid), str(a))
     return sql_insert
 
 
@@ -94,7 +94,7 @@ def book_crawler(sid: int):
                 list_ = get_content(page, num, html)
                 sql_insert = Sql_insert(sid, list_)
                 pg.execute(sql_insert)
-                print(sql_insert)
+                # print(sql_insert) #打印sql语句
             time.sleep(10)
         except IndexError:
             print('第{0}页，数量不足或溢出'.format(page))

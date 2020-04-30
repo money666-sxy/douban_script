@@ -198,19 +198,37 @@ def main():
     pg = PgHandler("postgres", "postgres", "6666")
     sid_list = sidList()
     for sid in sid_list:
-        pos_dict = pesg_word(sid)
-        pesg_list_json = pos_list(pos_dict)
-        pesg_name_json = pos_name(pos_dict)
-        sql_insert_list = '''UPDATE public."bookInfo_bookinfo" SET
+        crawal_pesg(sid)
+        # pos_dict = pesg_word(sid)
+        # pesg_list_json = pos_list(pos_dict)
+        # pesg_name_json = pos_name(pos_dict)
+        # sql_insert_list = '''UPDATE public."bookInfo_bookinfo" SET
+        #             pesg_list = '{0}'::jsonb
+        #             WHERE sid = {1}; '''.format(pesg_list_json, sid)
+        # print(sql_insert_list)
+        # pg.execute(sql_insert_list)
+        # sql_insert_name = '''UPDATE public."bookInfo_bookinfo" SET
+        #             pesg_name = '{0}'::jsonb
+        #             WHERE sid = {1}; '''.format(pesg_name_json, sid)
+        # pg.execute(sql_insert_name)
+        # print(sql_insert_name)
+
+
+def crawal_pesg(sid):
+    pg = PgHandler("postgres", "postgres", "6666")
+    pos_dict = pesg_word(sid)
+    pesg_list_json = pos_list(pos_dict)
+    pesg_name_json = pos_name(pos_dict)
+    sql_insert_list = '''UPDATE public."bookInfo_bookinfo" SET
                     pesg_list = '{0}'::jsonb
                     WHERE sid = {1}; '''.format(pesg_list_json, sid)
-        print(sql_insert_list)
-        pg.execute(sql_insert_list)
-        sql_insert_name = '''UPDATE public."bookInfo_bookinfo" SET
+    print(sql_insert_list)
+    pg.execute(sql_insert_list)
+    sql_insert_name = '''UPDATE public."bookInfo_bookinfo" SET
                     pesg_name = '{0}'::jsonb
                     WHERE sid = {1}; '''.format(pesg_name_json, sid)
-        pg.execute(sql_insert_name)
-        print(sql_insert_name)
+    pg.execute(sql_insert_name)
+    print(sql_insert_name)
 
 
 if __name__ == "__main__":
