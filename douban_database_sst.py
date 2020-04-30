@@ -8,9 +8,10 @@ from lxml import etree, html
 
 
 def sidList():
+    '''连接数据库，取出sid列表'''
     sid_list = []
     pg = pg_handle.PgHandler("postgres", "postgres", "6666")
-    sid_seq = pg.query('SELECT sid  FROM book_info;')
+    sid_seq = pg.query('SELECT sid  FROM public."bookInfo_bookinfo";')
     for sid in sid_seq:
         sid = eval((str(sid).strip('(').strip(')').strip(',')))
         sid_list.append(sid)
@@ -18,6 +19,7 @@ def sidList():
 
 
 def get_html(target_url):
+    '''伪装头部，向目标url发出请求，获取页面内容'''
     headers = {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         'Cache-Control': 'max-age=0',
@@ -32,19 +34,23 @@ def get_html(target_url):
 
 
 def Sql_insert_sts(list):
+    '''将爬取到的星级、评分、标签写入数据库'''
     a = str(list).strip('[').strip(']')
-    sql_insert = 'INSERT INTO '+'book_info' + \
-        '(STAR,TAG,SCORE) VALUES ('+str(a)+');'
+    sql_insert = '''INSERT INTO public."bookInfo_bookinfo" 
+        (STAR,TAG,SCORE) 
+        VALUES ('{0}');'''.format(str(a))
     print(sql_insert)
     return sql_insert
 
 
 def creat_sidurl(sid):
+    '''输入sid，生成目标url'''
     url = 'https://book.douban.com/subject/'+str(sid)+'/'
     return url
 
 
 # def star_(tree):
+#     '''解析页面，将星级处理成字典'''
 #     raw_stars = tree.xpath(
 #         '//div[@class="rating_right "]/*')[0]  # find stars
 #     raw_stars = html.tostring(raw_stars).decode(encoding='utf-8')
@@ -58,8 +64,17 @@ def creat_sidurl(sid):
 #         # print(stars[stars_key])
 #     return stars
 
+# def tags_(tree):
+#     '''解析页面，将tag处理成列表'''
+#     raw_tags = tree.xpath('//a[@class="  tag"]')  # find tags
+#     tags = []  # type == list
+#     for raw_tag in raw_tags:
+#         tags.append(raw_tag.text)
+#     return tags
+
 
 def star_str(tree):
+    '''解析页面，处理星级'''
     raw_stars = tree.xpath(
         '//div[@class="rating_right "]/*')[0]  # find stars
     raw_stars = html.tostring(raw_stars).decode(encoding='utf-8')
@@ -68,28 +83,22 @@ def star_str(tree):
     stars_num = ''
     for i in range(length):
         # stars_key = str(length-i) + '星'
-        stars_ = str(stars_values[i].text).strip('%')
-        stars_num = stars_num + '/' + stars_
+        stars_ = str(stars_values[i].text).strip('%')  # 去除百分号
+        stars_num = stars_num + '/' + stars_  # 将数据处理成 5/4/3/2/1 格数
         # print(stars[stars_key])
     return stars_num
 
 
 def score_(tree):
+    '''解析页面，将score处理成浮点数 '''
     raw_score = tree.xpath(
         '//strong[@class="ll rating_num "]')[0]  # find score
     score = float(raw_score.text)  # type == float
     return score
 
 
-def tags_(tree):
-    raw_tags = tree.xpath('//a[@class="  tag"]')  # find tags
-    tags = []  # type == list
-    for raw_tag in raw_tags:
-        tags.append(raw_tag.text)
-    return tags
-
-
 def tags_str(tree):
+    '''解析页面，将标签处理成字符串格式 中国/历史/传记 '''
     raw_tags = tree.xpath('//a[@class="  tag"]')  # find tags
     tags = ''  # type == str
     for raw_tag in raw_tags:
@@ -98,64 +107,32 @@ def tags_str(tree):
 
 
 def sst():
+    '''从数据库中取出sid列表，爬取内容并写入数据库bookinfo'''
     sid_list = sidList()
-    # sts_seq = []
     pg = pg_handle.PgHandler("postgres", "postgres", "6666")
     for sid in sid_list:
         crawal_sst(sid)
-        # url = creat_sidurl(int(sid))
-        # content = get_html(url)
-        # tree = etree.HTML(content)
-        # # score = score_(tree)
-        # # star = star_str(tree)
-        # # tags = tags_(tree)
-        # # database must str,not dist or list
-        # star = star_str(tree)
-        # score = score_(tree)
-        # tags = tags_str(tree)
-        # sql_insert = "UPDATE book_info set star = '{0}',tag='{1}',score={2} WHERE sid={3};".format(
-        #     star, tags, score, sid)
-        # print(sql_insert)
-        # # sql_insert = Sql_insert_sts('"{0}","{1}","{2}"'.format(
-        # #     str(star), str(tags), str(score)))
-        # pg.execute(sql_insert)
 
 
 def crawal_sst(sid):
+    '''爬取页面内容并写入数据库'''
     pg = pg_handle.PgHandler("postgres", "postgres", "6666")
-    url = creat_sidurl(int(sid))
-    content = get_html(url)
-    tree = etree.HTML(content)
+    url = creat_sidurl(int(sid))  # 生成目标url
+    content = get_html(url)  # 爬取页面内容
+    tree = etree.HTML(content)  # 转化成etree
     # score = score_(tree)
     # star = star_str(tree)
     # tags = tags_(tree)
     # database must str,not dist or list
-    star = star_str(tree)
-    score = score_(tree)
-    tags = tags_str(tree)
+    star = star_str(tree)  # 解析星级
+    score = score_(tree)  # 解析评分
+    tags = tags_str(tree)  # 解析标签
     sql_insert = '''UPDATE public."bookInfo_bookinfo" 
                     set star = '{0}',tag='{1}',score={2} 
                     WHERE sid={3};'''.format(star, tags, score, sid)
     print(sql_insert)
-    # sql_insert = Sql_insert_sts('"{0}","{1}","{2}"'.format(
-    #     str(star), str(tags), str(score)))
     pg.execute(sql_insert)
-
-# def test():
-#     sid_list = sidList()
-#     pg = pg_handle.PgHandler("testdb", "postgres", "6666")
-#     for sid in sid_list:
-#         url = creat_sidurl(int(sid))
-#         content = get_html(url)
-#         tree = etree.HTML(content)
-#         star = star_str(tree)
-#         score = score_(tree)
-#         tags = tags_str(tree)
-#         # print(score)
-#         print(tags)
-#         # print(star)
 
 
 if __name__ == "__main__":
     sst()
-    # test()
