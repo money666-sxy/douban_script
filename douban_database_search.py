@@ -92,6 +92,7 @@ def find_sid(raw_str: str) -> str:
 
 
 def search_sid(keywords: str):
+    '''在豆瓣里查找书名相对的sid'''
     kind = '读书'
     raw_str = get_content(keywords, kind)
     sid = find_sid(raw_str)
@@ -120,4 +121,4 @@ if __name__ == "__main__":
 
     start = time.time()
     search_main('见识')
-    print(time.time()-start)
+    print('爬取所有内容一共需要:{0}秒'.format(time.time()-start))
