@@ -6,26 +6,16 @@ import pg_handle
 import time
 
 
-def sql_table():
-    sql_table = '''CREATE TABLE BOOK_INFO2
-       (SID           INT PRIMARY KEY ,
-       NAME           TEXT,
-       STAR           TEXT,
-       TAG            TEXT,
-       SCORE          TEXT,
-       INFO           TEXT,
-       TFIDF          TEXT);'''
-    return sql_table
-
-
 def Sql_insert_sid(list_):
+    '''输入sid、name列表,返回插入sql语句'''
     # a = list(list_)
-    sql_insert = 'INSERT INTO '+'book_info' + \
-        '(sid,name) VALUES ('+str(list_)+');'
+    sql_insert = '''INSERT INTO public."bookInfo_bookinfo"
+        (sid,name) VALUES ('{0}');'''.format(str(list_))
     return sql_insert
 
 
 def get_html(target_url):
+    '''伪装头部，向目标url发出请求，获取页面内容'''
     headers = {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         'Cache-Control': 'max-age=0',
@@ -40,7 +30,7 @@ def get_html(target_url):
 
 
 def get_content_sid(target_url):
-    """获取url页面"""
+    '''输入目标url，爬取页面内容并进行解析，返回一本数的name、sid切片'''
     books = []
     book = get_html(target_url)
     soup = BeautifulSoup(book, 'lxml')  # 使用lxml作为解析器，返回一个Beautifulsoup对象
@@ -63,6 +53,7 @@ def get_content_sid(target_url):
 
 
 def book_info():
+    '''连接数据库，将爬取到的内容写入，默认爬取豆瓣top250'''
     pg = pg_handle.PgHandler("postgres", "postgres", "6666")
     # pg.execute(sql_table())
     try:
